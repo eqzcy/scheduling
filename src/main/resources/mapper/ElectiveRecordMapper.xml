@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.gdtech.scheduling.schedule.mapper.ElectiveRecordMapper">
+    <select id="queryStuElectiveGroupList"   resultType="java.lang.String">
+        select stu_id from elective_record
+        where act_id = #{actId}
+        and subject_code in
+        <foreach item="item" index="index" collection="subjectCodeArr" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        group by stu_id
+        having count(stu_id)=3
+    </select>
+
+    <select id="getTeachCountStatList"  resultType="com.gdtech.scheduling.schedule.dto.TeachCourseStatDto">
+        select subject_code as subjectCode, count(subject_code) as teacherCount, sum(class_count) as courseCount
+        from schedule_teacher
+        group by subject_code
+    </select>
+
+</mapper>

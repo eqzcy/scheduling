@@ -1,4 +1,4 @@
-package com.gd.scheduling.scheduling;
+package com.gdtech.scheduling.schedule;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
