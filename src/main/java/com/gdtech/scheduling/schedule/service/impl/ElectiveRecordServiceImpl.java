@@ -3,25 +3,28 @@ package com.gdtech.scheduling.schedule.service.impl;
 import com.gdtech.core.base.util.UUIDUtils;
 import com.gdtech.scheduling.schedule.dto.ElectiveRecordGroupDto;
 import com.gdtech.scheduling.schedule.entity.ElectiveRecord;
+import com.gdtech.scheduling.schedule.entity.SubjectGroupCourse;
 import com.gdtech.scheduling.schedule.enums.ElectiveGroupEnum;
 import com.gdtech.scheduling.schedule.enums.SubjectCodeEnum;
 import com.gdtech.scheduling.schedule.mapper.ElectiveRecordMapper;
+import com.gdtech.scheduling.schedule.mapper.SubjectGroupCourseMapper;
 import com.gdtech.scheduling.schedule.service.ElectiveRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class ElectiveRecordServiceImpl implements ElectiveRecordService {
 
     @Autowired
     private ElectiveRecordMapper electiveRecordMapper;
+
+    @Autowired
+    private SubjectGroupCourseMapper subjectGroupCourseMapper;
 
     @Override
     public List<ElectiveRecord> getAllElectiveRecordList() {
@@ -62,11 +65,38 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
     }
 
     @Override
+    @Transactional
     public void calElectiveGroup(String actId) {
         Map<ElectiveGroupEnum, List<String>> map = new HashMap<>();
         for(ElectiveGroupEnum electiveGroup : ElectiveGroupEnum.values()) {
             List<String> stuIdList = electiveRecordMapper.queryStuElectiveGroupList(actId, electiveGroup.getValues());
-            map.put(electiveGroup, stuIdList);
+            if(!CollectionUtils.isEmpty(stuIdList)) {
+                map.put(electiveGroup, stuIdList);
+            }
         }
+        List<SubjectGroupCourse> targetList = new ArrayList<>();
+        Set<ElectiveGroupEnum> electiveGroupSet = map.keySet();
+        for(ElectiveGroupEnum electiveGroup : electiveGroupSet) {
+            String[] subjectCodeArr = electiveGroup.getValues();
+            List<String> stuIdList = map.get(electiveGroup);
+
+            for(int i = 0; i < subjectCodeArr.length; i++) {
+                String subjectCode = subjectCodeArr[i];
+                SubjectGroupCourse groupCourse = new SubjectGroupCourse();
+                groupCourse.setId(UUIDUtils.genUID());
+                groupCourse.setActId(actId);
+                groupCourse.setLesson(i + 1);
+                groupCourse.setStuCount(stuIdList.size());
+                groupCourse.setSubjectCode(subjectCode);
+                groupCourse.setSubjectCodeGroup(subjectCodeArr.toString());
+
+                targetList.add(groupCourse);
+            }
+        }
+        SubjectGroupCourse delParam = new SubjectGroupCourse();
+        delParam.setActId(actId);
+        subjectGroupCourseMapper.delete(delParam);
+
+        subjectGroupCourseMapper.insertList(targetList);
     }
 }
