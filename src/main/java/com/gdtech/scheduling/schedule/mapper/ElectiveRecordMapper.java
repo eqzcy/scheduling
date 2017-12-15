@@ -14,5 +14,5 @@ public interface ElectiveRecordMapper extends MyBaseMapper<ElectiveRecord> {
     List<String> queryStuElectiveGroupList(@Param("actId")String actId,
                                            @Param("subjectCodeArr")String[] subjectCodeArr);
 
-    List<TeachCourseStatDto> getTeachCountStatList();
+
 }

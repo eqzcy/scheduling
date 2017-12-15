@@ -3,5 +3,20 @@
 
 <mapper namespace="com.gdtech.scheduling.schedule.mapper.SubjectGroupCourseMapper">
 
+    <select id="truncateTmpTable">
+        truncate table subject_group_course_tmp
+    </select>
 
+    <insert id="batchInsertGroupCouseTmp">
+        INSERT INTO subject_group_course_tmp  (act_id,lesson,subject_code,subject_code_group,stu_count,times )
+         VALUES
+        <foreach collection="list" item="item" index="index" open="(" separator="),("  close=")">
+            #{item.actId},
+            #{item.lesson},
+            #{item.subjectCode},
+            #{item.subjectCodeGroup},
+            #{item.stuCount},
+            #{item.times}
+        </foreach>
+    </insert>
 </mapper>

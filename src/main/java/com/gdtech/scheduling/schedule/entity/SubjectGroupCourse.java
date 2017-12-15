@@ -16,6 +16,8 @@ public class SubjectGroupCourse {
     private String subjectCodeGroup;
     //学生数
     private Integer stuCount;
+    //匹配次数
+    private  Integer times;
 
     public String getId() {
         return id;
@@ -63,5 +65,13 @@ public class SubjectGroupCourse {
 
     public void setStuCount(Integer stuCount) {
         this.stuCount = stuCount;
+    }
+
+    public Integer getTimes() {
+        return times;
+    }
+
+    public void setTimes(Integer times) {
+        this.times = times;
     }
 }

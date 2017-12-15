@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.gdtech.scheduling.schedule.mapper.ScheduleTeacherMapper">
+    <select id="getTeachCountStatList"  resultType="com.gdtech.scheduling.schedule.dto.TeachCourseStatDto">
+        select subject_code as subjectCode, count(subject_code) as teacherCount, sum(class_count) as courseCount
+        from schedule_teacher
+        group by subject_code
+    </select>
+
+    <select id="getNeedTeachCountStatListByRecordGroup"  resultType="com.gdtech.scheduling.schedule.dto.TeachCourseStatDto">
+        select subject_code, ceil(count(subject_code)/3) as teacherCount from subject_group_course_tmp where times=-1
+        group by subject_code
+    </select>
+
+</mapper>

@@ -2,12 +2,16 @@ package com.gdtech.scheduling.schedule.service.impl;
 
 import com.gdtech.core.base.util.UUIDUtils;
 import com.gdtech.scheduling.schedule.dto.ElectiveRecordGroupDto;
+import com.gdtech.scheduling.schedule.dto.TeachCourseStatDto;
 import com.gdtech.scheduling.schedule.entity.ElectiveRecord;
 import com.gdtech.scheduling.schedule.entity.SubjectGroupCourse;
+import com.gdtech.scheduling.schedule.entity.TeachClassSetting;
 import com.gdtech.scheduling.schedule.enums.ElectiveGroupEnum;
 import com.gdtech.scheduling.schedule.enums.SubjectCodeEnum;
 import com.gdtech.scheduling.schedule.mapper.ElectiveRecordMapper;
+import com.gdtech.scheduling.schedule.mapper.ScheduleTeacherMapper;
 import com.gdtech.scheduling.schedule.mapper.SubjectGroupCourseMapper;
+import com.gdtech.scheduling.schedule.mapper.TeachClassSettingMapper;
 import com.gdtech.scheduling.schedule.service.ElectiveRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +29,13 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
 
     @Autowired
     private SubjectGroupCourseMapper subjectGroupCourseMapper;
+
+    @Autowired
+    private TeachClassSettingMapper teachClassSettingMapper;
+
+    @Autowired
+    private ScheduleTeacherMapper scheduleTeacherMapper;
+
 
     @Override
     public List<ElectiveRecord> getAllElectiveRecordList() {
@@ -66,37 +77,146 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
 
     @Override
     @Transactional
-    public void calElectiveGroup(String actId) {
+    public void calElectiveGroup(String actId, int minute) {
+        /*SubjectGroupCourse delParam = new SubjectGroupCourse();
+        delParam.setActId(actId);*/
+        long startMillis = System.currentTimeMillis();
+        //耗时
+        long takeMillis = minute * 60 * 1000;
+        //已用时
+        long usedMillis = 0;
+        //匹配次数
+        int times = 1;
+        subjectGroupCourseMapper.truncateTmpTable();
+
+        TeachClassSetting teachClassSetting = new TeachClassSetting();
+        teachClassSetting.setActId(actId);
+        teachClassSetting = teachClassSettingMapper.selectOne(teachClassSetting);
+
         Map<ElectiveGroupEnum, List<String>> map = new HashMap<>();
         for(ElectiveGroupEnum electiveGroup : ElectiveGroupEnum.values()) {
             List<String> stuIdList = electiveRecordMapper.queryStuElectiveGroupList(actId, electiveGroup.getValues());
             if(!CollectionUtils.isEmpty(stuIdList)) {
-                map.put(electiveGroup, stuIdList);
+                stuIdList = createCommonSubjectGroup(actId, electiveGroup, stuIdList, teachClassSetting);
+                if(!CollectionUtils.isEmpty(stuIdList)) {
+                    map.put(electiveGroup, stuIdList);
+                }
             }
         }
-        List<SubjectGroupCourse> targetList = new ArrayList<>();
-        Set<ElectiveGroupEnum> electiveGroupSet = map.keySet();
-        for(ElectiveGroupEnum electiveGroup : electiveGroupSet) {
+
+        while (usedMillis < takeMillis) {
+            List<SubjectGroupCourse> targetList = new ArrayList<>();
+            Set<ElectiveGroupEnum> electiveGroupSet = map.keySet();
+            for(ElectiveGroupEnum electiveGroup : electiveGroupSet) {
+                String[] subjectCodeArr = electiveGroup.getValues();
+                List<String> stuIdList = map.get(electiveGroup);
+                String codeGroup = Arrays.toString(subjectCodeArr);
+                codeGroup = codeGroup.substring(1, codeGroup.length() - 1);
+
+                List<String> subjectCodeList = Arrays.asList(subjectCodeArr);
+                Collections.shuffle(subjectCodeList);
+                for(int i = 0; i < subjectCodeList.size(); i++) {
+                    String subjectCode = subjectCodeList.get(i);
+                    SubjectGroupCourse groupCourse = new SubjectGroupCourse();
+//                    groupCourse.setId(UUIDUtils.genUID32());
+                    groupCourse.setActId(actId);
+                    groupCourse.setLesson(i + 1);
+                    groupCourse.setStuCount(stuIdList.size());
+                    groupCourse.setSubjectCode(subjectCode);
+                    groupCourse.setSubjectCodeGroup(codeGroup);
+                    groupCourse.setTimes(times);
+
+                    targetList.add(groupCourse);
+                }
+            }
+            subjectGroupCourseMapper.batchInsertGroupCouseTmp(targetList);
+            long currentMillis = System.currentTimeMillis();
+                usedMillis = currentMillis - startMillis;
+//            usedMillis = 1000000000000000000l;
+            times++;
+        }
+
+        List<TeachCourseStatDto> teachCourseList = scheduleTeacherMapper.getTeachCountStatList();
+        List<TeachCourseStatDto> needTeachCourseList = scheduleTeacherMapper.getNeedTeachCountStatListByRecordGroup();
+        Map<String, Integer> needTeachCourseMap = getTeachCourseStatMap(needTeachCourseList);
+        for(TeachCourseStatDto dto: teachCourseList) {
+            int teacherCount = needTeachCourseMap.get(dto.getSubjectCode());
+            dto.setTeacherCount(dto.getTeacherCount() - teacherCount);
+        }
+        //todo
+    }
+
+    private List<String> createCommonSubjectGroup(String actId, ElectiveGroupEnum electiveGroup, List<String> stuIdList,
+                                          TeachClassSetting teachClassSetting) {
+        List<SubjectGroupCourse> commonSubjectGroupList = new ArrayList<>();
+        int quantity = teachClassSetting.getQuantity();
+        int deviation = teachClassSetting.getDeviation();
+        int minQuantity = quantity - deviation;
+        int maxQuantity = quantity + deviation;
+        //处理学生余数
+        boolean dealRemainder = Boolean.TRUE;
+        //余数
+        int remainder = 0;
+        List<String> remainderStuList = null;
+        //通用班级数
+        int classSize = stuIdList.size() / minQuantity;
+        if(0 == classSize) {
+            return stuIdList;
+        }
+        float classStuSize = (float) (stuIdList.size() * 1.0 / classSize);
+        if(classStuSize > maxQuantity) {
+            classStuSize = quantity;
+            dealRemainder = Boolean.FALSE;
+        }
+        remainder = stuIdList.size() % classSize;
+        classStuSize = (int)Math.floor(classStuSize);
+        List<List<String>> stuGroupIdList = new ArrayList<>();
+        int fromIndex = 0;
+        int toIndex = (int) classStuSize;
+        for(int cls = 0; cls < classSize; cls++) {
+            if(dealRemainder && remainder > 0) {
+                toIndex += 1;
+                remainder--;
+            }
+            List<String> subIdList = stuIdList.subList(fromIndex, toIndex);
+            fromIndex = toIndex;
+            toIndex = fromIndex + (int)classStuSize;
+            stuGroupIdList.add(subIdList);
+        }
+
+        remainderStuList = stuIdList.subList(fromIndex, stuIdList.size());
+        for(int cls = 0; cls < classSize; cls++) {
             String[] subjectCodeArr = electiveGroup.getValues();
-            List<String> stuIdList = map.get(electiveGroup);
+            String codeGroup = Arrays.toString(subjectCodeArr);
+            codeGroup = codeGroup.substring(1, codeGroup.length() - 1);
 
-            for(int i = 0; i < subjectCodeArr.length; i++) {
-                String subjectCode = subjectCodeArr[i];
+            List<String> curStuIdList = stuGroupIdList.get(cls);
+            List<String> subjectCodeList = Arrays.asList(subjectCodeArr);
+            Collections.shuffle(subjectCodeList);
+            for(int i = 0; i < subjectCodeList.size(); i++) {
+                String subjectCode = subjectCodeList.get(i);
                 SubjectGroupCourse groupCourse = new SubjectGroupCourse();
-                groupCourse.setId(UUIDUtils.genUID());
                 groupCourse.setActId(actId);
-                groupCourse.setLesson(i + 1);
-                groupCourse.setStuCount(stuIdList.size());
+                groupCourse.setLesson(-1);
+                groupCourse.setStuCount(curStuIdList.size());
                 groupCourse.setSubjectCode(subjectCode);
-                groupCourse.setSubjectCodeGroup(subjectCodeArr.toString());
+                groupCourse.setSubjectCodeGroup(codeGroup);
+                groupCourse.setTimes(-1);
 
-                targetList.add(groupCourse);
+                commonSubjectGroupList.add(groupCourse);
             }
         }
-        SubjectGroupCourse delParam = new SubjectGroupCourse();
-        delParam.setActId(actId);
-        subjectGroupCourseMapper.delete(delParam);
+        subjectGroupCourseMapper.batchInsertGroupCouseTmp(commonSubjectGroupList);
 
-        subjectGroupCourseMapper.insertList(targetList);
+        return remainderStuList;
+    }
+
+    private Map<String, Integer> getTeachCourseStatMap(List<TeachCourseStatDto> teachCourseList) {
+        Map<String, Integer> teachCourseMap = new HashMap<>();
+        for(TeachCourseStatDto dto : teachCourseList) {
+            teachCourseMap.put(dto.getSubjectCode(), dto.getTeacherCount());
+        }
+        return teachCourseMap;
     }
 }
+

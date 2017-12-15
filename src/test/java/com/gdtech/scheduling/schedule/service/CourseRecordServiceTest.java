@@ -118,4 +118,11 @@ public class CourseRecordServiceTest {
 
         electiveRecordService.modStuElectiveGroup(actId, groupList);
     }
+
+    @Test
+    public void testCalElectiveGroup() {
+        String actId = "999";
+        int minute = 1;
+        electiveRecordService.calElectiveGroup(actId, minute);
+    }
 }

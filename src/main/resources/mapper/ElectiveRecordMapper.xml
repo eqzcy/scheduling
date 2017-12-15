@@ -13,10 +13,6 @@
         having count(stu_id)=3
     </select>
 
-    <select id="getTeachCountStatList"  resultType="com.gdtech.scheduling.schedule.dto.TeachCourseStatDto">
-        select subject_code as subjectCode, count(subject_code) as teacherCount, sum(class_count) as courseCount
-        from schedule_teacher
-        group by subject_code
-    </select>
+
 
 </mapper>

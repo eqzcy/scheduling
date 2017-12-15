@@ -5,9 +5,15 @@ import com.gdtech.scheduling.schedule.entity.ElectiveRecord;
 import com.gdtech.scheduling.schedule.entity.SubjectGroupCourse;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * @author zhucy
  */
 @Repository
 public interface SubjectGroupCourseMapper extends MyBaseMapper<SubjectGroupCourse> {
+
+    void truncateTmpTable();
+
+    int batchInsertGroupCouseTmp(List<SubjectGroupCourse> list);
 }

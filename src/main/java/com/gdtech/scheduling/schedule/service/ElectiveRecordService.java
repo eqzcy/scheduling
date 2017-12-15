@@ -23,6 +23,7 @@ public interface ElectiveRecordService {
     /**
      * 计算最优选修组合
      * @param actId
+     * @param minute 计算时间(分钟)
      */
-    void calElectiveGroup(String actId);
+    void calElectiveGroup(String actId, int minute);
 }
