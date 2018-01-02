@@ -6,7 +6,7 @@ import com.gdtech.core.base.entity.BaseEntity;
  * 教学班分班配置
  * @author zhucy
  */
-public class TeachClassSetting extends BaseEntity {
+public class TeachingClassSetting extends BaseEntity {
     //选课活动id
     private String actId;
     //名称
@@ -46,5 +46,13 @@ public class TeachClassSetting extends BaseEntity {
 
     public void setDeviation(Integer deviation) {
         this.deviation = deviation;
+    }
+    
+    public Integer getMaxQuantity() {
+        return quantity + deviation;
+    }
+    
+    public Integer getMinQuantity() {
+        return quantity - deviation;
     }
 }

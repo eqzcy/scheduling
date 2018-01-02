@@ -1,6 +1,6 @@
 package com.gdtech.scheduling.schedule.service;
 
-import com.gdtech.scheduling.schedule.SchedulingApplication;
+import com.gdtech.scheduling.schedule.SchedulingApplicationTests;
 import com.gdtech.scheduling.schedule.dto.ElectiveRecordGroupDto;
 import com.gdtech.scheduling.schedule.entity.ElectiveRecord;
 import com.gdtech.scheduling.schedule.enums.SubjectCodeEnum;
@@ -17,7 +17,7 @@ import java.util.List;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Import(SchedulingApplication.class)
+@Import(SchedulingApplicationTests.class)
 public class CourseRecordServiceTest {
 
 
@@ -124,5 +124,11 @@ public class CourseRecordServiceTest {
         String actId = "999";
         int minute = 1;
         electiveRecordService.calElectiveGroup(actId, minute);
+    }
+
+    @Test
+    public void testDealPassGroupCourse() {
+        String actId = "999";
+        electiveRecordService.dealPassGroupCourse(actId);
     }
 }

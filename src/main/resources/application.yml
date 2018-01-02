@@ -4,7 +4,7 @@ spring:
 #        url: jdbc:mysql://eb.gdtech.com.cn:3308/gdpkdb2
 #        username: gdpkdb2
 #        password: gdpkdb2
-        url: jdbc:mysql://localhost:3306/gdpkdb2
+        url: jdbc:mysql://localhost:3306/gdpkdb2?useUnicode=true&characterEncoding=utf8
         username: root
         password: root
         # 使用druid数据源
@@ -39,3 +39,8 @@ pagehelper:
     reasonable: true
     supportMethodsArguments: true
     params: count=countSql
+
+logging:
+    level:
+        com:
+            gdtech: DEBUG

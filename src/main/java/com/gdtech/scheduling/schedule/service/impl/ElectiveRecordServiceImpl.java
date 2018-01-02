@@ -2,17 +2,20 @@ package com.gdtech.scheduling.schedule.service.impl;
 
 import com.gdtech.core.base.util.UUIDUtils;
 import com.gdtech.scheduling.schedule.dto.ElectiveRecordGroupDto;
+import com.gdtech.scheduling.schedule.dto.ElectiveRecordLessonGroupDto;
 import com.gdtech.scheduling.schedule.dto.TeachCourseStatDto;
 import com.gdtech.scheduling.schedule.entity.ElectiveRecord;
 import com.gdtech.scheduling.schedule.entity.SubjectGroupCourse;
-import com.gdtech.scheduling.schedule.entity.TeachClassSetting;
+import com.gdtech.scheduling.schedule.entity.TeachingClassSetting;
 import com.gdtech.scheduling.schedule.enums.ElectiveGroupEnum;
 import com.gdtech.scheduling.schedule.enums.SubjectCodeEnum;
 import com.gdtech.scheduling.schedule.mapper.ElectiveRecordMapper;
 import com.gdtech.scheduling.schedule.mapper.ScheduleTeacherMapper;
 import com.gdtech.scheduling.schedule.mapper.SubjectGroupCourseMapper;
-import com.gdtech.scheduling.schedule.mapper.TeachClassSettingMapper;
+import com.gdtech.scheduling.schedule.mapper.TeachingClassSettingMapper;
 import com.gdtech.scheduling.schedule.service.ElectiveRecordService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +26,7 @@ import java.util.*;
 
 @Service
 public class ElectiveRecordServiceImpl implements ElectiveRecordService {
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
     private ElectiveRecordMapper electiveRecordMapper;
@@ -31,7 +35,7 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
     private SubjectGroupCourseMapper subjectGroupCourseMapper;
 
     @Autowired
-    private TeachClassSettingMapper teachClassSettingMapper;
+    private TeachingClassSettingMapper teachClassSettingMapper;
 
     @Autowired
     private ScheduleTeacherMapper scheduleTeacherMapper;
@@ -53,7 +57,7 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
         List<ElectiveRecord> insertList = new ArrayList<>();
         for(ElectiveRecordGroupDto group : groupList) {
             List<SubjectCodeEnum> subjectList = group.getSubjectCodeList();
-            int size = group.getSize();
+            int size = group.getStuCount();
             StringBuilder stuIdPre = new StringBuilder();
             for(SubjectCodeEnum subjectCode : subjectList) {
                 stuIdPre.append(subjectCode.getValue()).append("_");
@@ -89,13 +93,14 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
         int times = 1;
         subjectGroupCourseMapper.truncateTmpTable();
 
-        TeachClassSetting teachClassSetting = new TeachClassSetting();
+        TeachingClassSetting teachClassSetting = new TeachingClassSetting();
         teachClassSetting.setActId(actId);
         teachClassSetting = teachClassSettingMapper.selectOne(teachClassSetting);
 
         Map<ElectiveGroupEnum, List<String>> map = new HashMap<>();
+        Map<ElectiveGroupEnum, List<String>> stuElectiveGroupMap  = queryStuElectiveGroupMap(actId);
         for(ElectiveGroupEnum electiveGroup : ElectiveGroupEnum.values()) {
-            List<String> stuIdList = electiveRecordMapper.queryStuElectiveGroupList(actId, electiveGroup.getValues());
+            List<String> stuIdList = stuElectiveGroupMap.get(electiveGroup);
             if(!CollectionUtils.isEmpty(stuIdList)) {
                 stuIdList = createCommonSubjectGroup(actId, electiveGroup, stuIdList, teachClassSetting);
                 if(!CollectionUtils.isEmpty(stuIdList)) {
@@ -112,8 +117,8 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
                 List<String> stuIdList = map.get(electiveGroup);
                 String codeGroup = Arrays.toString(subjectCodeArr);
                 codeGroup = codeGroup.substring(1, codeGroup.length() - 1);
-
-                List<String> subjectCodeList = Arrays.asList(subjectCodeArr);
+                //防止科目序号被打乱
+                List<String> subjectCodeList = new ArrayList<>(Arrays.asList(subjectCodeArr));
                 Collections.shuffle(subjectCodeList);
                 for(int i = 0; i < subjectCodeList.size(); i++) {
                     String subjectCode = subjectCodeList.get(i);
@@ -129,25 +134,111 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
                     targetList.add(groupCourse);
                 }
             }
-            subjectGroupCourseMapper.batchInsertGroupCouseTmp(targetList);
+            subjectGroupCourseMapper.batchInsertGroupCourseTmp(targetList);
             long currentMillis = System.currentTimeMillis();
-                usedMillis = currentMillis - startMillis;
+            usedMillis = currentMillis - startMillis;
 //            usedMillis = 1000000000000000000l;
             times++;
         }
 
-        List<TeachCourseStatDto> teachCourseList = scheduleTeacherMapper.getTeachCountStatList();
-        List<TeachCourseStatDto> needTeachCourseList = scheduleTeacherMapper.getNeedTeachCountStatListByRecordGroup();
-        Map<String, Integer> needTeachCourseMap = getTeachCourseStatMap(needTeachCourseList);
-        for(TeachCourseStatDto dto: teachCourseList) {
-            int teacherCount = needTeachCourseMap.get(dto.getSubjectCode());
-            dto.setTeacherCount(dto.getTeacherCount() - teacherCount);
-        }
-        //todo
+
     }
 
+    @Override
+    public void dealPassGroupCourse(String actId) {
+        TeachingClassSetting teachClassSetting = new TeachingClassSetting();
+        teachClassSetting.setActId(actId);
+        teachClassSetting = teachClassSettingMapper.selectOne(teachClassSetting);
+        Set<Integer> unPassTimesSet = new HashSet<>();
+        Set<Integer> passTimesSet = new HashSet<>();
+        Map<String, Integer> teachTeachCourseMap = genTeachCourseStatMap(teachClassSetting);
+        List<ElectiveRecordLessonGroupDto> lessonGroupList = subjectGroupCourseMapper.getAllSubjectGroupCourseTmpList();
+        List<ElectiveRecordLessonGroupDto> firstSubjectGroupList = subjectGroupCourseMapper.getSubjectGroupList(actId, 1);
+        Map<String, Integer> classSizeMap = getSubjectClassSizeMap(firstSubjectGroupList);
+        passTimesSet.add(-1);
+        for(ElectiveRecordLessonGroupDto groupDto : lessonGroupList) {
+            if(unPassTimesSet.contains(groupDto.getTimes())) {
+                continue;
+            }
+            if(!passTimesSet.contains(groupDto.getTimes())) {
+                passTimesSet.add(groupDto.getTimes());
+            }
+            int classSize = classSizeMap.get(groupDto.getSubjectCode());
+            /*Double classSize = Math.ceil(dto.getStuCount() / 55.0);
+            map.put(dto.getSubjectCode(), classSize.intValue());*/
+            Double size1 = Math.ceil(groupDto.getLesson1() / 55.0);
+            int class1Size = size1.intValue();
+
+            Double size2 = Math.ceil(groupDto.getLesson3() / 55.0);
+            int class2Size = size2.intValue();
+
+            Double size3 = Math.ceil(groupDto.getLesson3() / 55.0);
+            int class3Size = size3.intValue();
+
+            int totalClassSize = class1Size + class2Size + class3Size;
+            if(classSize < totalClassSize) {
+                unPassTimesSet.add(groupDto.getTimes());
+            }
+
+        }
+
+        log.info("noPassList: {}", Arrays.toString(unPassTimesSet.toArray()));
+
+        SubjectGroupCourse delGroupCourse = new SubjectGroupCourse();
+        delGroupCourse.setActId(actId);
+        subjectGroupCourseMapper.delete(delGroupCourse);
+        passTimesSet.removeAll(unPassTimesSet);
+        subjectGroupCourseMapper.batchSaveSubjectGroupCourse(passTimesSet);
+    }
+
+    @Override
+    public List<ElectiveRecordGroupDto> getAutoGroupList(String actId) {
+        return subjectGroupCourseMapper.getAutoGroupList(actId);
+    }
+
+    @Override
+    public List<List<ElectiveRecordLessonGroupDto>> getElectiveStatList(String actId) {
+        List<List<ElectiveRecordLessonGroupDto>> targetList = new ArrayList<>();
+        List<ElectiveRecordLessonGroupDto> list = subjectGroupCourseMapper.getElectiveRecordLessonGroupList(actId);
+        Map<String, List<ElectiveRecordLessonGroupDto>> subjectMap = new HashMap<>();
+        Integer currTimes = -1;
+        List<ElectiveRecordLessonGroupDto> subList = null;
+        for(ElectiveRecordLessonGroupDto dto : list) {
+            if(!dto.getTimes().equals(currTimes)) {
+                currTimes = dto.getTimes();
+                subList = new ArrayList<>();
+                subList.add(dto);
+                targetList.add(subList);
+            } else {
+                subList.add(dto);
+            }
+        }
+        return targetList;
+    }
+
+    @Override
+    public Map<ElectiveGroupEnum, List<String>> queryStuElectiveGroupMap(String actId) {
+        Map<ElectiveGroupEnum, List<String>> map = new HashMap<>();
+        for(ElectiveGroupEnum electiveGroup : ElectiveGroupEnum.values()) {
+            List<String> stuIdList = electiveRecordMapper.queryStuElectiveGroupList(actId, electiveGroup.getValues());
+            if(!CollectionUtils.isEmpty(stuIdList)) {
+                map.put(electiveGroup, stuIdList);
+            }
+        }
+        return map;
+    }
+
+    private Map<String, Integer> getSubjectClassSizeMap(List<ElectiveRecordLessonGroupDto> subjectGroupList) {
+        Map<String, Integer> map = new HashMap<>();
+        for(ElectiveRecordLessonGroupDto dto : subjectGroupList) {
+            Double classSize = Math.ceil(dto.getStuCount() / 45.0);
+            map.put(dto.getSubjectCode(), classSize.intValue());
+        }
+
+        return map;
+    }
     private List<String> createCommonSubjectGroup(String actId, ElectiveGroupEnum electiveGroup, List<String> stuIdList,
-                                          TeachClassSetting teachClassSetting) {
+                                                  TeachingClassSetting teachClassSetting) {
         List<SubjectGroupCourse> commonSubjectGroupList = new ArrayList<>();
         int quantity = teachClassSetting.getQuantity();
         int deviation = teachClassSetting.getDeviation();
@@ -191,7 +282,8 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
             codeGroup = codeGroup.substring(1, codeGroup.length() - 1);
 
             List<String> curStuIdList = stuGroupIdList.get(cls);
-            List<String> subjectCodeList = Arrays.asList(subjectCodeArr);
+            //防止科目序号被打乱
+            List<String> subjectCodeList = new ArrayList<>(Arrays.asList(subjectCodeArr));
             Collections.shuffle(subjectCodeList);
             for(int i = 0; i < subjectCodeList.size(); i++) {
                 String subjectCode = subjectCodeList.get(i);
@@ -206,15 +298,27 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
                 commonSubjectGroupList.add(groupCourse);
             }
         }
-        subjectGroupCourseMapper.batchInsertGroupCouseTmp(commonSubjectGroupList);
+        subjectGroupCourseMapper.batchInsertGroupCourseTmp(commonSubjectGroupList);
 
         return remainderStuList;
     }
 
-    private Map<String, Integer> getTeachCourseStatMap(List<TeachCourseStatDto> teachCourseList) {
+    private Map<String, Integer> genTeachCourseStatMap(TeachingClassSetting teachClassSetting) {
+        //科目最大学生数 key: subjectCode, count: 学生数
         Map<String, Integer> teachCourseMap = new HashMap<>();
-        for(TeachCourseStatDto dto : teachCourseList) {
-            teachCourseMap.put(dto.getSubjectCode(), dto.getTeacherCount());
+        List<TeachCourseStatDto> teachCourseList = scheduleTeacherMapper.getTeachCountStatList();
+        List<TeachCourseStatDto> needTeachCourseList = scheduleTeacherMapper.getNeedTeachCountStatListByRecordGroup();
+        int maxQuantity = teachClassSetting.getQuantity() + teachClassSetting.getDeviation();
+
+        Map<String, Integer> needTeachCourseMap = new HashMap<>();
+        for(TeachCourseStatDto dto : needTeachCourseList) {
+            needTeachCourseMap.put(dto.getSubjectCode(), dto.getTeacherCount());
+        }
+
+        for(TeachCourseStatDto dto: teachCourseList) {
+            int teacherCount = needTeachCourseMap.get(dto.getSubjectCode());
+            int maxStuCount = maxQuantity * (dto.getTeacherCount() - teacherCount);
+            teachCourseMap.put(dto.getSubjectCode(), maxStuCount);
         }
         return teachCourseMap;
     }

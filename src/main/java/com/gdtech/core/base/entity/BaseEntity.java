@@ -1,5 +1,6 @@
 package com.gdtech.core.base.entity;
 
+import javax.persistence.Id;
 import java.io.Serializable;
 
 /**

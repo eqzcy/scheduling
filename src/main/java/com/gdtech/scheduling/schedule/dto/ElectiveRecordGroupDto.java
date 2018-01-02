@@ -13,25 +13,27 @@ public class ElectiveRecordGroupDto {
 
     //科目组合
     private List<SubjectCodeEnum> subjectCodeList;
-    //学生数
-    private int size;
+
+    private String subjectCodeGroup;
+
+    private Integer stuCount;
 
     public ElectiveRecordGroupDto() {
 
     }
 
-    public ElectiveRecordGroupDto(List<SubjectCodeEnum> subjectCodeList, int size) {
+    public ElectiveRecordGroupDto(List<SubjectCodeEnum> subjectCodeList, int stuCount) {
         this.subjectCodeList = subjectCodeList;
-        this.size = size;
+        this.stuCount = stuCount;
     }
 
-    public ElectiveRecordGroupDto(int size, SubjectCodeEnum... subjectCodeArray) {
+    public ElectiveRecordGroupDto(int stuCount, SubjectCodeEnum... subjectCodeArray) {
         List<SubjectCodeEnum> subjectCodeList = new ArrayList<>();
         for (SubjectCodeEnum subjectCode : subjectCodeArray) {
             subjectCodeList.add(subjectCode);
         }
         this.subjectCodeList = subjectCodeList;
-        this.size = size;
+        this.stuCount = stuCount;
     }
 
     public List<SubjectCodeEnum> getSubjectCodeList() {
@@ -42,11 +44,19 @@ public class ElectiveRecordGroupDto {
         this.subjectCodeList = subjectCodeList;
     }
 
-    public int getSize() {
-        return size;
+    public Integer getStuCount() {
+        return stuCount;
     }
 
-    public void setSize(int size) {
-        this.size = size;
+    public void setStuCount(Integer stuCount) {
+        this.stuCount = stuCount;
+    }
+
+    public String getSubjectCodeGroup() {
+        return subjectCodeGroup;
+    }
+
+    public void setSubjectCodeGroup(String subjectCodeGroup) {
+        this.subjectCodeGroup = subjectCodeGroup;
     }
 }

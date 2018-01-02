@@ -7,7 +7,7 @@
         truncate table subject_group_course_tmp
     </select>
 
-    <insert id="batchInsertGroupCouseTmp">
+    <insert id="batchInsertGroupCourseTmp">
         INSERT INTO subject_group_course_tmp  (act_id,lesson,subject_code,subject_code_group,stu_count,times )
          VALUES
         <foreach collection="list" item="item" index="index" open="(" separator="),("  close=")">
@@ -19,4 +19,91 @@
             #{item.times}
         </foreach>
     </insert>
+
+    <select id="getSubjectGroupList" resultType="com.gdtech.scheduling.schedule.dto.ElectiveRecordLessonGroupDto">
+        select subject_code as subjectCode, sum(stu_count) as stuCount from subject_group_course_tmp
+        where act_id = #{actId}
+        and times = #{times}
+        group by subject_code
+    </select>
+
+    <select id="getAllSubjectGroupCourseTmpList" resultType="com.gdtech.scheduling.schedule.dto.ElectiveRecordLessonGroupDto">
+        select tt.times,
+		tt.subjectCode,
+		max(CASE tt.lesson WHEN '1' THEN tt.stuCount ELSE 0 END) lesson1,
+		max(CASE tt.lesson WHEN '2' THEN tt.stuCount ELSE 0 END) lesson2,
+		max(CASE tt.lesson WHEN '3' THEN tt.stuCount ELSE 0 END) lesson3,
+		sum(tt.stuCount) as stuCount
+		 from
+        (select sgc.times, sgc.lesson, sgc.subject_code as subjectCode, sum(sgc.stu_count) as stuCount from subject_group_course_tmp sgc
+	        where sgc.act_id = '999'
+	        and sgc.times != -1
+	        and lesson!=-1
+	        group by sgc.times, sgc.subject_code, sgc.lesson
+	       ) tt
+        group by tt.times, tt.subjectCode
+        order by tt.times, FIELD(tt.subjectCode,'05','06','09','04','07','08')
+    </select>
+
+    <select id="batchSaveSubjectGroupCourse">
+        insert into subject_group_course
+          (id, act_id, lesson, subject_code, subject_code_group, stu_count, times)
+        select REPLACE(UUID(), '-', ''), act_id, lesson, subject_code, subject_code_group, stu_count, times
+        from subject_group_course_tmp where times in
+        <foreach collection="passTimesSet" item="item" index="index" open="(" separator=","  close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="getAutoGroupList" resultType="com.gdtech.scheduling.schedule.dto.ElectiveRecordGroupDto">
+        select sgc.subject_code_group as subjectCodeGroup, sum(stu_count)/3 as stuCount
+        from subject_group_course sgc
+        where sgc.act_id = #{actId}
+        and sgc.times=-1 and lesson=-1
+	    group by sgc.subject_code_group
+    </select>
+
+    <select id="getElectiveRecordLessonGroupList" resultType="com.gdtech.scheduling.schedule.dto.ElectiveRecordLessonGroupDto">
+        select tt.times,
+		tt.subjectCode,
+		max(CASE tt.lesson WHEN '1' THEN tt.stuCount ELSE 0 END) lesson1,
+		max(CASE tt.lesson WHEN '2' THEN tt.stuCount ELSE 0 END) lesson2,
+		max(CASE tt.lesson WHEN '3' THEN tt.stuCount ELSE 0 END) lesson3,
+		sum(tt.stuCount) as stuCount
+		 from 
+        (select sgc.times, sgc.lesson, sgc.subject_code as subjectCode, sum(sgc.stu_count) as stuCount from subject_group_course sgc
+	        where sgc.act_id = #{actId}
+	        and sgc.times != -1
+	        and lesson!=-1
+	        group by sgc.times, sgc.subject_code, sgc.lesson
+	       ) tt
+        group by tt.times, tt.subjectCode
+        order by tt.times, FIELD(tt.subjectCode,'05','06','09','04','07','08')
+    </select>
+
+    <select id="queryList" resultType="com.gdtech.scheduling.schedule.entity.SubjectGroupCourse"
+    parameterType="com.gdtech.scheduling.schedule.entity.SubjectGroupCourse">
+       SELECT sgc.* FROM subject_group_course sgc
+        WHERE 1=1
+        <if test="subjectGroupCourse.id != null ">
+            and sgc.id = #{subjectGroupCourse.id}
+        </if>
+        <if test="subjectGroupCourse.actId != null ">
+            and sgc.act_id = #{subjectGroupCourse.actId}
+        </if>
+        <if test="subjectGroupCourse.lesson != null ">
+            and sgc.lesson = #{subjectGroupCourse.lesson}
+        </if>
+        <if test="subjectGroupCourse.subjectCode != null ">
+            and sgc.subject_code = #{subjectGroupCourse.subjectCode}
+        </if>
+        <if test="subjectGroupCourse.subjectCodeGroup != null ">
+            and sgc.subject_code_group = #{subjectGroupCourse.subjectCodeGroup}
+        </if>
+        <if test="subjectGroupCourse.times != null ">
+            and sgc.times = #{subjectGroupCourse.times}
+        </if>
+    </select>
+
+
 </mapper>

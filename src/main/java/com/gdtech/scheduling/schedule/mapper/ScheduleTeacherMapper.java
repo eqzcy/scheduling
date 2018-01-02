@@ -1,6 +1,8 @@
 package com.gdtech.scheduling.schedule.mapper;
 
+import com.gdtech.core.base.mapper.MyBaseMapper;
 import com.gdtech.scheduling.schedule.dto.TeachCourseStatDto;
+import com.gdtech.scheduling.schedule.entity.ScheduleTeacher;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -9,7 +11,7 @@ import java.util.List;
  * @author zhucy
  */
 @Repository
-public interface ScheduleTeacherMapper {
+public interface ScheduleTeacherMapper extends MyBaseMapper<ScheduleTeacher> {
 
     /**
      * 教师可用数统计

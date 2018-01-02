@@ -35,4 +35,13 @@ public enum SubjectCodeEnum {
     public String getName() {
         return name;
     }
+
+    public static SubjectCodeEnum getByValue(String value) {
+        for(SubjectCodeEnum subjectCodeEnum : SubjectCodeEnum.values()) {
+            if(subjectCodeEnum.getValue().equals(value)) {
+                return subjectCodeEnum;
+            }
+        }
+        return null;
+    }
 }

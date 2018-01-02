@@ -52,7 +52,10 @@ public class SubjectGroupCourse {
     }
 
     public String getSubjectCodeGroup() {
-        return subjectCodeGroup;
+        if(null != subjectCodeGroup) {
+            return subjectCodeGroup.replaceAll(" ", "");
+        }
+        return null;
     }
 
     public void setSubjectCodeGroup(String subjectCodeGroup) {

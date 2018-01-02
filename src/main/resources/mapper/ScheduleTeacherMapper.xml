@@ -9,7 +9,7 @@
     </select>
 
     <select id="getNeedTeachCountStatListByRecordGroup"  resultType="com.gdtech.scheduling.schedule.dto.TeachCourseStatDto">
-        select subject_code, ceil(count(subject_code)/3) as teacherCount from subject_group_course_tmp where times=-1
+        select subject_code as subjectCode, ceil(count(subject_code)/3) as teacherCount from subject_group_course_tmp where times=-1
         group by subject_code
     </select>
 
