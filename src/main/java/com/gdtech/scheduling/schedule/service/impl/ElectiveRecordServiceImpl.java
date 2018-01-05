@@ -169,7 +169,7 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
             Double size1 = Math.ceil(groupDto.getLesson1() / 55.0);
             int class1Size = size1.intValue();
 
-            Double size2 = Math.ceil(groupDto.getLesson3() / 55.0);
+            Double size2 = Math.ceil(groupDto.getLesson2() / 55.0);
             int class2Size = size2.intValue();
 
             Double size3 = Math.ceil(groupDto.getLesson3() / 55.0);
@@ -189,6 +189,18 @@ public class ElectiveRecordServiceImpl implements ElectiveRecordService {
         subjectGroupCourseMapper.delete(delGroupCourse);
         passTimesSet.removeAll(unPassTimesSet);
         subjectGroupCourseMapper.batchSaveSubjectGroupCourse(passTimesSet);
+    }
+
+    @Override
+    public void dealCommonsGroupCourseStu(String actId) {
+        List<ElectiveRecordGroupDto> recordGroupList = subjectGroupCourseMapper.getAutoGroupList(actId);
+        for(ElectiveRecordGroupDto recordGroup : recordGroupList) {
+            String subjectGroup = recordGroup.getSubjectCodeGroup();
+            String[] subjectGroupArr = subjectGroup.split(",");
+            List<String> stuIdList = electiveRecordMapper.queryStuElectiveGroupList(actId, subjectGroupArr);
+            //todo 待处理学生数据
+        }
+
     }
 
     @Override

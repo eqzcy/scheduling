@@ -56,7 +56,8 @@
     </select>
 
     <select id="getAutoGroupList" resultType="com.gdtech.scheduling.schedule.dto.ElectiveRecordGroupDto">
-        select sgc.subject_code_group as subjectCodeGroup, sum(stu_count)/3 as stuCount
+        select sgc.subject_code_group as subjectCodeGroup, sum(stu_count)/3 as stuCount,
+        count(sgc.subject_code_group)/3 as classCount
         from subject_group_course sgc
         where sgc.act_id = #{actId}
         and sgc.times=-1 and lesson=-1
@@ -105,5 +106,11 @@
         </if>
     </select>
 
+    <select id="getSubjectGroupCourseTmpList" resultType="com.gdtech.scheduling.schedule.entity.SubjectGroupCourse"
+            parameterType="com.gdtech.scheduling.schedule.entity.SubjectGroupCourse">
+        SELECT sgc.*  FROM subject_group_course sgc
+        WHERE times = #{times}
+
+    </select>
 
 </mapper>

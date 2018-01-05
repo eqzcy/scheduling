@@ -37,6 +37,12 @@ public interface ElectiveRecordService {
     void dealPassGroupCourse(String actId);
 
     /**
+     * 处理通用排课学生
+     * @param actId
+     */
+    void dealCommonsGroupCourseStu(String actId);
+
+    /**
      * 获取自由排课列表
      * @param actId
      * @return

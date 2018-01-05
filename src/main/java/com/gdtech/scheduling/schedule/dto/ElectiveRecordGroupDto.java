@@ -15,8 +15,10 @@ public class ElectiveRecordGroupDto {
     private List<SubjectCodeEnum> subjectCodeList;
 
     private String subjectCodeGroup;
-
+    //学生数
     private Integer stuCount;
+    //班级数
+    private Integer classCount;
 
     public ElectiveRecordGroupDto() {
 
@@ -53,10 +55,21 @@ public class ElectiveRecordGroupDto {
     }
 
     public String getSubjectCodeGroup() {
+        if(null != subjectCodeGroup) {
+            subjectCodeGroup.replaceAll(" ", "");
+        }
         return subjectCodeGroup;
     }
 
     public void setSubjectCodeGroup(String subjectCodeGroup) {
         this.subjectCodeGroup = subjectCodeGroup;
+    }
+
+    public Integer getClassCount() {
+        return classCount;
+    }
+
+    public void setClassCount(Integer classCount) {
+        this.classCount = classCount;
     }
 }

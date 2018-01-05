@@ -32,4 +32,6 @@ public interface SubjectGroupCourseMapper extends MyBaseMapper<SubjectGroupCours
     List<ElectiveRecordLessonGroupDto> getElectiveRecordLessonGroupList(@Param("actId")String actId);
 
     List<SubjectGroupCourse> queryList(@Param("subjectGroupCourse") SubjectGroupCourse subjectGroupCourse);
+
+    List<SubjectGroupCourse> getSubjectGroupCourseTmpList(@Param("times")Integer times);
 }

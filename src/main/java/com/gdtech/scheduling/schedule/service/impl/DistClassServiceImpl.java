@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,11 +52,45 @@ public class DistClassServiceImpl implements DistClassService {
     public void distTeachClass(String settingId, String actId, Integer times) {
         List<TeachingClass> teachingClassList = new ArrayList<>();
         List<ElectiveRecordLessonGroupDto> lessonGroupList = subjectGroupCourseMapper.getSubjectGroupList(actId, times);
+        final int commonTimes = -1;
+        List<ElectiveRecordLessonGroupDto> commonLessonGroupList = subjectGroupCourseMapper.getSubjectGroupList(actId, commonTimes);
         TeachingClass delParam  = new TeachingClass();
         delParam.setSettingId(settingId);
         teachingClassMapper.delete(delParam);
         Map<ElectiveGroupEnum, List<String>> electiveStuGroupMap = electiveRecordService.queryStuElectiveGroupMap(actId);
+        Map<String, Integer> classIndexMap = new HashMap<>();
 
+        //todo 通用班级处理
+       /* for(ElectiveRecordLessonGroupDto dto : commonLessonGroupList) {
+            TeachingClass teachingClass = new TeachingClass();
+            teachingClass.setSettingId(settingId);
+            SubjectCodeEnum subjectCodeEnum = SubjectCodeEnum.getByValue(dto.getSubjectCode());
+            if (null != subjectCodeEnum) {
+                teachingClass.setName(subjectCodeEnum.getName());
+            }
+            teachingClass.setSubjectCode(dto.getSubjectCode());
+            //班级序号
+            Integer classIndex = classIndexMap.get(dto.getSubjectCode());
+            if(null == classIndex) {
+                classIndex = 1;
+                classIndexMap.put(dto.getSubjectCode(), classIndex);
+            }
+
+            for (int lesson = 1; lesson < 4; lesson++) {
+                teachingClass.setLesson(lesson);
+                List<List<String>> stuIdList = getStuIdList(actId, dto.getSubjectCode(), commonTimes, lesson, electiveStuGroupMap);
+                for(int i = 0; i < stuIdList.size(); i++) {
+                    TeachingClass targetClass = new TeachingClass();
+                    BeanUtils.copyProperties(teachingClass, targetClass);
+                    targetClass.setId(UUIDUtils.genUID32());
+                    targetClass.setName(teachingClass.getName() + classIndex + "班");
+                    classIndex++;
+                    teachingClassList.add(targetClass);
+                    List<String> subList = stuIdList.get(i);
+                    teachingClassStuMapper.batchSave(targetClass.getId(), subList);
+                }
+            }
+        }*/
         for(ElectiveRecordLessonGroupDto dto : lessonGroupList) {
             TeachingClass teachingClass = new TeachingClass();
             teachingClass.setSettingId(settingId);
