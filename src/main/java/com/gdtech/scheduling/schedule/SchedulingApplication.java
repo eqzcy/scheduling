@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 //@Controller
 @EnableWebMvc
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.gdtech","com.gdtech.core.base.controller"})
 @MapperScan(basePackages = "com.gdtech.scheduling.schedule.mapper")
 public class SchedulingApplication {
 

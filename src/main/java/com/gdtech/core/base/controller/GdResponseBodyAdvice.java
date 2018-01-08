@@ -2,6 +2,7 @@ package com.gdtech.core.base.controller;
 
 import com.gdtech.core.base.constant.StatusCode;
 import com.gdtech.core.base.dto.ResultDto;
+import com.github.pagehelper.PageInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
@@ -11,6 +12,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import java.io.File;
@@ -18,7 +20,7 @@ import java.io.File;
 /**
  * @author zhucy
  */
-@ControllerAdvice
+@ControllerAdvice//(basePackages = "com.gdtech.scheduling.schedule.controller")
 public class GdResponseBodyAdvice implements ResponseBodyAdvice<Object> {
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -39,7 +41,7 @@ public class GdResponseBodyAdvice implements ResponseBodyAdvice<Object> {
             return body;
         }
 
-        if (body instanceof ResultDto || body instanceof String) {
+        if (body instanceof ResultDto || body instanceof PageInfo || body instanceof String) {
             return body;
         } else if (body instanceof File) {
             return body;

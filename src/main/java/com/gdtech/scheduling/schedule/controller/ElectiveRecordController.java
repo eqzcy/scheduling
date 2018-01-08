@@ -20,6 +20,7 @@ public class ElectiveRecordController {
     @RequestMapping(value = "getAll")
     public PageInfo<ElectiveRecord> getAll() {
         List<ElectiveRecord> recordList = courseRecordService.getAllElectiveRecordList();
+
         return new PageInfo<ElectiveRecord>(recordList);
     }
 
